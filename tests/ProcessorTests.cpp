@@ -124,7 +124,7 @@ public:
             expectWithinAbsoluteError (get (b, DuckerProcessor::duckId), 100.0f, 0.01f);
             expectWithinAbsoluteError (get (b, DuckerProcessor::triggerId), 0.0f, 0.01f);
             expect (b.getCurve() == tidyCurve (factoryShapes().front().points));
-            expect (b.bob && b.windowScale == 1.0f && ! b.presetEdited);
+            expect (b.bob && b.windowScale == 0.75f && ! b.presetEdited);
         }
 
         beginTest ("Window: the clicked Trigger and Rate buttons are the lit ones, every time");

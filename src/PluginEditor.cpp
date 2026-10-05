@@ -152,9 +152,9 @@ namespace ducker
         sizePill.onClick = [this]
         {
             juce::PopupMenu m;
-            for (int pct : { 75, 100, 125, 150 })
-                m.addItem (pct, juce::String (pct) + "%", true, juce::roundToInt (proc.windowScale * 100.0f) == pct);
-            m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&sizePill), [this] (int r) { if (r > 0) setScale ((float) r / 100.0f); });
+            for (int pct : { 100, 125, 150, 175, 200 })
+                m.addItem (pct, juce::String (pct) + "%", true, juce::roundToInt (proc.windowScale / theme::baseScale * 100.0f) == pct);
+            m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&sizePill), [this] (int r) { if (r > 0) setScale (theme::baseScale * (float) r / 100.0f); });
         };
         panel.addAndMakeVisible (sizePill);
 
@@ -177,8 +177,8 @@ namespace ducker
 
     void DuckerEditor::setScale (float s)
     {
-        proc.windowScale = juce::jlimit (0.75f, 1.5f, s);
-        sizePill.setText (juce::String (juce::roundToInt (proc.windowScale * 100.0f)) + "%");
+        proc.windowScale = juce::jlimit (theme::minScale, theme::maxScale, s);
+        sizePill.setText (juce::String (juce::roundToInt (proc.windowScale / theme::baseScale * 100.0f)) + "%");
         sizePill.setBounds (theme::width - 10 - sizePill.idealWidth(), 5, sizePill.idealWidth(), 26);
         panel.setTransform (juce::AffineTransform::scale (proc.windowScale));
         setSize (juce::roundToInt (theme::width * proc.windowScale), juce::roundToInt (theme::height * proc.windowScale));

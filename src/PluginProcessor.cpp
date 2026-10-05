@@ -157,7 +157,7 @@ namespace ducker
 
         presetName = xml->getStringAttribute ("preset", "Kick start");
         presetEdited = xml->getBoolAttribute ("edited", false);
-        windowScale = juce::jlimit (0.75f, 1.5f, (float) xml->getDoubleAttribute ("scale", 1.0));
+        windowScale = juce::jlimit (0.75f, 1.5f, (float) xml->getDoubleAttribute ("scale", 0.75));
         bob = xml->getBoolAttribute ("bob", true);
 
         // every parameter the state does not mention goes back to its default

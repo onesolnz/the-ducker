@@ -46,7 +46,7 @@ namespace ducker
         // Window-side state kept with the plug-in (message thread).
         juce::String presetName { "Kick start" };
         bool presetEdited = false;
-        float windowScale = 1.0f;
+        float windowScale = 0.75f;          // drawing scale of the 1350 x 600 layout (0.75 = "100 %", 1.5 = "200 %")
         bool bob = true;
 
         juce::AudioProcessorValueTreeState params;

@@ -17,7 +17,9 @@ namespace ducker::theme
     inline const juce::Colour orange     { 0xffe57b12 };
     inline const juce::Colour curveLine  { 0xffe9c27a };
 
-    constexpr int width = 1350, height = 600;     // the window at 100 %
+    constexpr int width = 1350, height = 600;     // the layout size; drawn at baseScale for "100 %"
+    constexpr float baseScale = 0.75f;            // the user found 1350 x 600 too big: "100 %" is 1012 x 450 (2026-10-05)
+    constexpr float minScale = baseScale, maxScale = baseScale * 2.0f;
 
     // Condensed labels (the mock-up used Oswald; Bahnschrift ships with Windows 10 and 11).
     inline juce::Font label (float size, bool bold = false)
