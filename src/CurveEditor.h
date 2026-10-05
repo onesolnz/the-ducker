@@ -11,7 +11,7 @@ namespace ducker
 {
     // The curve over one pass (mock-up column 2): drag a point, double-click adds or removes one, Alt-drag a line to bend it.
     // The first and last points stay on the edges. Behind the curve: the sound that came in and went out, folded onto the
-    // pass, and a playhead line.
+    // pass as a waveform mirrored around the middle line and scaled to the loudest recent part, and a playhead line.
     class CurveEditor : public juce::Component
     {
     public:
@@ -47,6 +47,7 @@ namespace ducker
         float bendStartY = 0.0f;
         double bendStart = 0.0;
         float phase = -1.0f;
+        float waveScale = 1.0f;                               // the level that fills the height (follows louder at once, quieter in about a second)
         std::array<float, DuckerEngine::kLiveBuckets> liveIn {}, liveOut {};
     };
 }

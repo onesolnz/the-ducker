@@ -69,6 +69,12 @@ namespace ducker
             liveIn[(size_t) i] = in;
             liveOut[(size_t) i] = out;
         }
+        float loud = 0.0f;
+        for (int i = 0; i < DuckerEngine::kLiveBuckets; ++i)
+            loud = juce::jmax (loud, liveIn[(size_t) i], liveOut[(size_t) i]);
+        const float scale = loud > waveScale ? loud : juce::jmax (1.0e-4f, waveScale + (loud - waveScale) * 0.04f);
+        any = any || scale != waveScale;
+        waveScale = scale;
         if (any)
             repaint();
     }
@@ -175,21 +181,25 @@ namespace ducker
         for (int i = 0; i <= 4; ++i)
             g.drawHorizontalLine ((int) std::round (padY + ih * (float) i / 4.0f), padX, padX + iw);
 
-        // the sound folded onto the pass
-        const float bw = iw / (float) DuckerEngine::kLiveBuckets;
+        // the sound folded onto the pass: a waveform mirrored around the middle line, in (faint) and out (yellow)
+        const float bw = iw / (float) DuckerEngine::kLiveBuckets, mid = padY + ih * 0.5f;
+        const auto half = [&] (float level) { return juce::jmin (1.0f, level / waveScale) * ih * 0.5f * 0.9f; };
+        g.setColour (theme::brass.withAlpha (0.22f));
+        g.drawHorizontalLine ((int) std::round (mid), padX, padX + iw);
         for (int i = 0; i < DuckerEngine::kLiveBuckets; ++i)
         {
             const float x = padX + (float) i * bw;
-            const float in = juce::jmin (1.0f, liveIn[(size_t) i]), out = juce::jmin (1.0f, liveOut[(size_t) i]);
-            if (in > 0.0f)
+            if (liveIn[(size_t) i] > 0.0f)
             {
-                g.setColour (theme::cream.withAlpha (0.07f));
-                g.fillRect (x, ty (in), bw + 0.3f, in * ih);
+                const float hIn = half (liveIn[(size_t) i]);
+                g.setColour (theme::cream.withAlpha (0.09f));
+                g.fillRect (x, mid - hIn, bw + 0.3f, hIn * 2.0f);
             }
-            if (out > 0.0f)
+            if (liveOut[(size_t) i] > 0.0f)
             {
-                g.setColour (theme::yellow.withAlpha (0.18f));
-                g.fillRect (x, ty (out), bw + 0.3f, out * ih);
+                const float hOut = half (liveOut[(size_t) i]);
+                g.setColour (theme::yellow.withAlpha (0.22f));
+                g.fillRect (x, mid - hOut, bw + 0.3f, hOut * 2.0f);
             }
         }
 
