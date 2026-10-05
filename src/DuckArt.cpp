@@ -7,7 +7,15 @@ namespace ducker
     DuckArt::DuckArt()
     {
         headView.image = juce::ImageCache::getFromMemory (BinaryData::duckerhead_png, BinaryData::duckerhead_pngSize);
-        bodyView.image = juce::ImageCache::getFromMemory (BinaryData::duckerbody_png, BinaryData::duckerbody_pngSize);
+
+        // the sheet is decoded once per process (ImageCache) and each frame is a view into it
+        const auto sheet = juce::ImageCache::getFromMemory (BinaryData::tier1_spritesheet_1x_png, BinaryData::tier1_spritesheet_1x_pngSize);
+        if (sheet.isValid())
+            for (int i = 0; i < kSpriteFrames; ++i)
+                spriteFrames.push_back (sheet.getClippedImage ({ (i % kSpriteColumns) * kSpriteW, (i / kSpriteColumns) * kSpriteH, kSpriteW, kSpriteH }));
+        bodyView.image = spriteFrames.empty() ? juce::ImageCache::getFromMemory (BinaryData::duckerbody_png, BinaryData::duckerbody_pngSize)
+                                              : spriteFrames.front();
+
         for (auto* v : { &headView, &bodyView })
         {
             v->setInterceptsMouseClicks (false, false);
@@ -15,11 +23,26 @@ namespace ducker
         }
         headView.setTitle ("Duck head");
         bodyView.setTitle ("The Ducker duck");
+        startMs = juce::Time::getMillisecondCounterHiRes();
     }
 
     void DuckArt::setDuck (float duck, bool bob)
     {
         duck = juce::jlimit (0.0f, 1.0f, duck);
+
+        // the idle loop runs on its own clock
+        if (! spriteFrames.empty())
+        {
+            const double seconds = (juce::Time::getMillisecondCounterHiRes() - startMs) * 0.001;
+            const int frame = (int) std::fmod (seconds * kSpriteFps, (double) kSpriteFrames);
+            if (frame != shownFrame)
+            {
+                shownFrame = frame;
+                bodyView.image = spriteFrames[(size_t) frame];
+                bodyView.repaint();
+            }
+        }
+
         if (std::abs (duck - shownDuck) < 0.002f && bob == shownBob)
             return;
         shownDuck = duck;
@@ -51,7 +74,8 @@ namespace ducker
     {
         if (! image.isValid())
             return;
-        const auto fit = juce::RectanglePlacement (juce::RectanglePlacement::centred)
+        // fitted to the box with the feet on its bottom edge, so the bob pivots around them
+        const auto fit = juce::RectanglePlacement (juce::RectanglePlacement::xMid | juce::RectanglePlacement::yBottom)
                              .getTransformToFit (image.getBounds().toFloat(), getLocalBounds().toFloat());
         g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
         g.drawImageTransformed (image, fit.followedBy (motion));

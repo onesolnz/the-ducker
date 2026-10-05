@@ -131,7 +131,7 @@ namespace ducker
         triggerWatch = std::make_unique<juce::ParameterAttachment> (param (DuckerProcessor::triggerId), [this] (float v) { shownTrigger = juce::jlimit (0, 2, juce::roundToInt (v)); refreshTriggerUi(); });
 
         // column 4: the duck and its Bob switch; column 5: head and meter
-        art.body().setBounds (944, 190, 290, 320);
+        art.body().setBounds (944, 176, 290, 344);
         panel.addAndMakeVisible (art.body());
         bobPill.setBounds (1166, 530, 64, 34);
         bobPill.setOn (proc.bob);
