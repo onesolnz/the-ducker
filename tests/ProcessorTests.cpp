@@ -1,6 +1,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "PluginProcessor.h"
+#include "PresetStore.h"
 
 using namespace ducker;
 
@@ -123,6 +124,26 @@ public:
             expectWithinAbsoluteError (get (b, DuckerProcessor::triggerId), 0.0f, 0.01f);
             expect (b.getCurve() == tidyCurve (factoryShapes().front().points));
             expect (b.bob && b.windowScale == 1.0f && ! b.presetEdited);
+        }
+
+        beginTest ("User presets: save and load round trip; a broken file gives none");
+        {
+            auto file = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("ducker-presets-test.xml");
+            UserPreset p;
+            p.name = "Pump & roll";
+            p.curve = tidyCurve (factoryShapes()[9].points);
+            p.duck = 55.0f; p.mix = 80.0f; p.smooth = 4.5f; p.offset = -10.0f; p.delay = 12.0f; p.rate = 1;
+            expect (presetStore::save (file, { p }));
+            const auto back = presetStore::load (file);
+            expectEquals ((int) back.size(), 1);
+            if (! back.empty())
+            {
+                const auto& b = back.front();
+                expect (b.name == p.name && b.curve == p.curve && b.duck == 55.0f && b.mix == 80.0f && b.smooth == 4.5f && b.offset == -10.0f && b.delay == 12.0f && b.rate == 1);
+            }
+            file.replaceWithText ("not xml");
+            expect (presetStore::load (file).empty());
+            file.deleteFile();
         }
 
         beginTest ("Curves are tidied: sorted, clamped, spanning the whole pass");

@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 
+#include "PluginEditor.h"
 #include "RealtimeGuard.h"
 
 namespace ducker
@@ -124,7 +125,7 @@ namespace ducker
 
     juce::AudioProcessorEditor* DuckerProcessor::createEditor()
     {
-        return new juce::GenericAudioProcessorEditor (*this);
+        return new DuckerEditor (*this);
     }
 
     void DuckerProcessor::getStateInformation (juce::MemoryBlock& destData)

@@ -37,6 +37,11 @@ set(DUCKER_CORE_SOURCES
     src/DuckerEngine.cpp
     src/RealtimeGuard.cpp
     src/PluginProcessor.cpp
+    src/PluginEditor.cpp
+    src/Widgets.cpp
+    src/CurveEditor.cpp
+    src/DuckArt.cpp
+    src/PresetStore.cpp
 )
 
 target_sources(TheDucker PRIVATE ${DUCKER_CORE_SOURCES})

@@ -60,6 +60,7 @@ namespace ducker
     {
     public:
         static constexpr int kMaxPending = 32;      // curve starts waiting out the Delay
+        static constexpr int kLiveBuckets = 160;    // the sound folded onto one pass, for the bars behind the curve
 
         void prepare (double sampleRate);           // message thread
         void reset() noexcept;
@@ -80,6 +81,9 @@ namespace ducker
         // Highest input / output sample since the last call (the meters take them on their timer).
         float takeInPeak() noexcept { return inPeak.exchange (0.0f, std::memory_order_relaxed); }
         float takeOutPeak() noexcept { return outPeak.exchange (0.0f, std::memory_order_relaxed); }
+        // The peak that came in and the peak that left in each slice of the pass, from its latest pass (any thread).
+        float getLiveIn (int bucket) const noexcept  { return liveIn[(size_t) bucket].load (std::memory_order_relaxed); }
+        float getLiveOut (int bucket) const noexcept { return liveOut[(size_t) bucket].load (std::memory_order_relaxed); }
 
     private:
         void startPass() noexcept { started = true; passPhase = 0.0; }
@@ -97,5 +101,8 @@ namespace ducker
 
         std::atomic<float> shownDuck { 0.0f }, shownPhase { -1.0f }, inPeak { 0.0f }, outPeak { 0.0f };
         std::atomic<int> hits { 0 };
+        std::array<std::atomic<float>, kLiveBuckets> liveIn {}, liveOut {};
+        int liveBucket = -1;
+        float bucketIn = 0.0f, bucketOut = 0.0f;
     };
 }

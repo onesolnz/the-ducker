@@ -65,6 +65,7 @@ namespace ducker
         started = false;
         passPhase = 0.0;
         numPending = 0;
+        liveBucket = -1;
         shownDuck.store (0.0f);
         shownPhase.store (-1.0f);
     }
@@ -142,6 +143,21 @@ namespace ducker
                 right[i] *= g;
             blockIn = std::max (blockIn, in);
             blockOut = std::max (blockOut, in * g);
+
+            // each slice of the pass keeps the peaks of its latest pass (nothing while stopped or holding after a pass)
+            const int now = phase >= 0.0 && phase < 1.0 ? std::min (kLiveBuckets - 1, (int) (phase * kLiveBuckets)) : -1;
+            if (now != liveBucket)
+            {
+                if (liveBucket >= 0)
+                {
+                    liveIn[(size_t) liveBucket].store (bucketIn, std::memory_order_relaxed);
+                    liveOut[(size_t) liveBucket].store (bucketOut, std::memory_order_relaxed);
+                }
+                liveBucket = now;
+                bucketIn = bucketOut = 0.0f;
+            }
+            bucketIn = std::max (bucketIn, in);
+            bucketOut = std::max (bucketOut, in * g);
         }
 
         const float g = 1.0f - mix * (1.0f - gainState);
