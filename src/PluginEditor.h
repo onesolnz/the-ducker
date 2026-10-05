@@ -72,6 +72,7 @@ namespace ducker
         Meter meter;
         DuckArt art;
         std::unique_ptr<juce::ParameterAttachment> rateWatch, triggerWatch;
+        int shownRate = 0, shownTrigger = 0;
 
         // status line, lamp and meter state (timer)
         int lastHits = 0;

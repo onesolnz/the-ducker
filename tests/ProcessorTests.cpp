@@ -2,6 +2,7 @@
 
 #include "PluginProcessor.h"
 #include "PresetStore.h"
+#include "Widgets.h"
 
 using namespace ducker;
 
@@ -124,6 +125,41 @@ public:
             expectWithinAbsoluteError (get (b, DuckerProcessor::triggerId), 0.0f, 0.01f);
             expect (b.getCurve() == tidyCurve (factoryShapes().front().points));
             expect (b.bob && b.windowScale == 1.0f && ! b.presetEdited);
+        }
+
+        beginTest ("Window: the clicked Trigger and Rate buttons are the lit ones, every time");
+        {
+            juce::ScopedJuceInitialiser_GUI gui;
+            DuckerProcessor p;
+            std::unique_ptr<juce::AudioProcessorEditor> editor (p.createEditor());
+            std::function<Pill* (juce::Component&, const juce::String&)> find = [&find] (juce::Component& c, const juce::String& title) -> Pill*
+            {
+                for (auto* child : c.getChildren())
+                {
+                    if (auto* pill = dynamic_cast<Pill*> (child); pill != nullptr && pill->getTitle() == title)
+                        return pill;
+                    if (auto* found = find (*child, title))
+                        return found;
+                }
+                return nullptr;
+            };
+            auto check = [&] (std::initializer_list<const char*> group, const char* click, float expected, const char* id)
+            {
+                auto* target = find (*editor, click);
+                expect (target != nullptr, click);
+                if (target == nullptr)
+                    return;
+                target->onClick();
+                for (auto* name : group)
+                    if (auto* b = find (*editor, name))
+                        expect (b->isOn() == (juce::String (name) == click), juce::String (name) + " after clicking " + click);
+                expectWithinAbsoluteError (get (p, id), expected, 0.01f);
+            };
+            for (auto* click : { "MIDI", "Audio", "Beat", "MIDI", "Beat", "Audio" })
+                check ({ "Beat", "Audio", "MIDI" }, click, juce::String (click) == "Beat" ? 0.0f : (juce::String (click) == "Audio" ? 1.0f : 2.0f), DuckerProcessor::triggerId);
+            for (auto* click : { "1/8", "1/16", "1/4", "1/16" })
+                check ({ "1/4", "1/8", "1/16" }, click, juce::String (click) == "1/4" ? 0.0f : (juce::String (click) == "1/8" ? 1.0f : 2.0f), DuckerProcessor::rateId);
+            editor.reset();
         }
 
         beginTest ("User presets: save and load round trip; a broken file gives none");

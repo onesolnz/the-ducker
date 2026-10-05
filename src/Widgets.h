@@ -49,6 +49,7 @@ namespace ducker
         Pill (juce::String text, Style style, bool withArrow = false);
         void setText (const juce::String& t);
         void setOn (bool on);
+        bool isOn() const { return on; }
         int idealWidth() const;
 
         std::function<void()> onClick;

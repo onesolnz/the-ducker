@@ -127,8 +127,8 @@ namespace ducker
             panel.addAndMakeVisible (*b);
             shapeButtons.push_back (std::move (b));
         }
-        rateWatch = std::make_unique<juce::ParameterAttachment> (param (DuckerProcessor::rateId), [this] (float) { refreshTriggerUi(); });
-        triggerWatch = std::make_unique<juce::ParameterAttachment> (param (DuckerProcessor::triggerId), [this] (float) { refreshTriggerUi(); });
+        rateWatch = std::make_unique<juce::ParameterAttachment> (param (DuckerProcessor::rateId), [this] (float v) { shownRate = juce::jlimit (0, 2, juce::roundToInt (v)); refreshTriggerUi(); });
+        triggerWatch = std::make_unique<juce::ParameterAttachment> (param (DuckerProcessor::triggerId), [this] (float v) { shownTrigger = juce::jlimit (0, 2, juce::roundToInt (v)); refreshTriggerUi(); });
 
         // column 4: the duck and its Bob switch; column 5: head and meter
         art.body().setBounds (944, 190, 290, 320);
@@ -189,15 +189,9 @@ namespace ducker
         panel.setBounds (0, 0, theme::width, theme::height);
     }
 
-    int DuckerEditor::triggerIndex() const
-    {
-        return juce::jlimit (0, 2, juce::roundToInt (proc.params.getRawParameterValue (DuckerProcessor::triggerId)->load()));
-    }
-
-    int DuckerEditor::rateIndex() const
-    {
-        return juce::jlimit (0, 2, juce::roundToInt (proc.params.getRawParameterValue (DuckerProcessor::rateId)->load()));
-    }
+    // The attachments pass the new value before the plug-in's stored value has caught up, so the window keeps its own copy.
+    int DuckerEditor::triggerIndex() const { return shownTrigger; }
+    int DuckerEditor::rateIndex() const    { return shownRate; }
 
     void DuckerEditor::refreshTriggerUi()
     {
