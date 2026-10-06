@@ -1,0 +1,53 @@
+{
+ "body_canvas": [
+  582,
+  966
+ ],
+ "body_file": "body.png",
+ "draw_body_at": [
+  0,
+  0
+ ],
+ "head_sheet": "head_spritesheet.png",
+ "head_cell": [
+  464,
+  464
+ ],
+ "grid": [
+  5,
+  3
+ ],
+ "frame_count": 15,
+ "draw_head_at": [
+  -1,
+  5
+ ],
+ "draw_order": "body first, then head",
+ "angles_deg": [
+  -3.0,
+  -1.5,
+  0.0,
+  1.5,
+  3.0,
+  4.5,
+  6.0,
+  7.5,
+  9.0,
+  10.5,
+  12.0,
+  13.5,
+  15.0,
+  16.5,
+  18.0
+ ],
+ "rest_frame_index": 2,
+ "neck_pivot_on_body": [
+  285,
+  375
+ ],
+ "neck_pivot_in_head_cell": [
+  286,
+  370
+ ],
+ "note": "Frame i is at column i%5, row i//5. Head frames already include rotation and the down/right shift, so draw each one unrotated at draw_head_at."
+}
