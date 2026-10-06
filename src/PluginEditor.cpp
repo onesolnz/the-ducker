@@ -161,7 +161,7 @@ namespace ducker
         refreshPresetUi();
         rateWatch->sendInitialUpdate();
         triggerWatch->sendInitialUpdate();
-        art.setDuck (0.0f, proc.bob, proc.params.getRawParameterValue (DuckerProcessor::duckId)->load());
+        art.setDuck (0.0f, proc.bob, proc.params.getRawParameterValue (DuckerProcessor::duckId)->load(), false, 0.0);
         lastHits = proc.engine.getHitCount();
         lastTick = juce::Time::getMillisecondCounterHiRes();
         setScale (proc.windowScale);
@@ -386,7 +386,7 @@ namespace ducker
 
         // duck art and the gain reduction readout
         const float duck = engine.getDuckAmount();
-        art.setDuck (duck, proc.bob, proc.params.getRawParameterValue (DuckerProcessor::duckId)->load());
+        art.setDuck (duck, proc.bob, proc.params.getRawParameterValue (DuckerProcessor::duckId)->load(), proc.hostPlaying.load(), proc.hostPpq.load());
 
         // lamp and status line
         const int trig = triggerIndex();

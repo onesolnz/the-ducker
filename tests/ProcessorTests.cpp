@@ -190,34 +190,31 @@ public:
             expect (c.front().tick == 0 && c.front().bend == 1.0 && c[1].value == 1.0 && c.back().tick == kCycleTicks);
         }
 
-        beginTest ("Duck art: the Duck knob picks the loop (with a dead zone at 1 %); every loop wraps without a skipped or doubled end");
+        beginTest ("Duck art: the nod is on the beat, steps one frame at a time, and the Duck knob scales its size");
         {
-            // 0 = idle, 2 % and up = fists up, 1 % keeps what is showing
-            expect (DuckArt::nextLoop (0, 0.0f) == 0 && DuckArt::nextLoop (1, 0.0f) == 0);
-            expect (DuckArt::nextLoop (0, 1.0f) == 0 && DuckArt::nextLoop (1, 1.0f) == 1);
-            expect (DuckArt::nextLoop (0, 2.0f) == 1 && DuckArt::nextLoop (0, 100.0f) == 1 && DuckArt::nextLoop (1, 50.0f) == 1);
-            int total = 0;
-            for (int loop = 0; loop < 2; ++loop)
+            constexpr int steps = 28;
+            // on the beat (cycle 0, 1, 2 ...) the head is at its deepest frame, whatever the knob does to the size
+            expectEquals (DuckArt::nodFrame (0.0, 100.0f), DuckArt::kHeadFrames - 1);
+            expectEquals (DuckArt::nodFrame (3.0, 100.0f), DuckArt::kHeadFrames - 1);
+            for (float knob : { 0.0f, 25.0f, 50.0f, 100.0f })
             {
-                const auto& l = DuckArt::kLoops[loop];
-                total += l.count;
-                const int period = l.pingPong ? 2 * l.count - 2 : l.count;
-                std::vector<int> seen ((size_t) l.count, 0);
-                for (long long t = 0; t < 3 * period; ++t)
+                int lo = 99, hi = -1;
+                for (int s = 0; s < 3 * steps; ++s)
                 {
-                    const int f = DuckArt::frameAt (loop, t), next = DuckArt::frameAt (loop, t + 1);
-                    expect (f >= l.first && f < l.first + l.count, "frame inside its own loop");
-                    // one step at a time, except where a plain loop jumps back to its start
-                    const bool wrap = ! l.pingPong && f == l.first + l.count - 1 && next == l.first;
-                    expect (std::abs (next - f) == 1 || wrap, "smooth step in loop " + juce::String (loop));
-                    if (t < period)
-                        ++seen[(size_t) (f - l.first)];
+                    const double cycle = (s + 0.5) / steps;
+                    const int f = DuckArt::nodFrame (cycle, knob), next = DuckArt::nodFrame (cycle + 1.0 / steps, knob);
+                    expect (f >= 0 && f < DuckArt::kHeadFrames, "frame inside the sheet");
+                    expect (std::abs (next - f) <= 1, "smooth step at knob " + juce::String (knob));
+                    lo = juce::jmin (lo, f);
+                    hi = juce::jmax (hi, f);
                 }
-                // a ping-pong shows its two ends once per cycle and the middle frames twice
-                for (int i = 0; i < l.count; ++i)
-                    expectEquals (seen[(size_t) i], (! l.pingPong || i == 0 || i == l.count - 1) ? 1 : 2);
+                if (knob == 0.0f)
+                    expect (lo == DuckArt::kRestFrame && hi == DuckArt::kRestFrame, "no nod at Duck 0 %");
+                if (knob == 100.0f)
+                    expect (lo == 0 && hi == DuckArt::kHeadFrames - 1, "the full range at Duck 100 %");
+                if (knob == 50.0f)
+                    expect (hi - lo > 3 && hi - lo < DuckArt::kHeadFrames - 1, "about half the range at Duck 50 %");
             }
-            expectEquals (total, DuckArt::kSpriteFrames);
         }
     }
 };

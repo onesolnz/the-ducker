@@ -30,7 +30,8 @@ juce_add_binary_data(TheDuckerArt
         assets/ducker-logo.png
         assets/ducker-head.png
         assets/ducker-body.png
-        assets/duck_loops.png
+        assets/body.png
+        assets/head_spritesheet.png
 )
 
 set(DUCKER_CORE_SOURCES
