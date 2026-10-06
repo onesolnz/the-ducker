@@ -9,7 +9,7 @@ add_subdirectory(JUCE)
 
 # The spec is in the Ingot repo: specs/27-the-ducker-vst.md (mock-up: specs/mockup-the-ducker.html).
 juce_add_plugin(TheDucker
-    COMPANY_NAME "OneSol Productions"
+    COMPANY_NAME "OneSol Audio"
     BUNDLE_ID "com.onesolproductions.theducker"
     PLUGIN_MANUFACTURER_CODE Osp1
     PLUGIN_CODE Dck1
