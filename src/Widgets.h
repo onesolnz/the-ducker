@@ -58,6 +58,7 @@ namespace ducker
         void paint (juce::Graphics&) override;
         void mouseEnter (const juce::MouseEvent&) override { repaint(); }
         void mouseExit (const juce::MouseEvent&) override { repaint(); }
+        void mouseDown (const juce::MouseEvent&) override { repaint(); }
         void mouseUp (const juce::MouseEvent&) override;
 
     private:
@@ -77,6 +78,7 @@ namespace ducker
         void paint (juce::Graphics&) override;
         void mouseEnter (const juce::MouseEvent&) override { repaint(); }
         void mouseExit (const juce::MouseEvent&) override { repaint(); }
+        void mouseDown (const juce::MouseEvent&) override { repaint(); }
         void mouseUp (const juce::MouseEvent&) override;
 
     private:
@@ -91,7 +93,7 @@ namespace ducker
         void setLevels (float inLevel, float outLevel, float inPeakMark, float outPeakMark);   // 0 to 1 of the scale
         void paint (juce::Graphics&) override;
 
-        static constexpr int barWidth = 30, gap = 12;
+        static constexpr int barWidth = 26, gap = 4;
 
     private:
         float in = 0.0f, out = 0.0f, inMark = 0.0f, outMark = 0.0f;

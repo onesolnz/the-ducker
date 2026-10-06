@@ -142,9 +142,7 @@ namespace ducker
             bobPill.setOn (proc.bob);
         };
         panel.addAndMakeVisible (bobPill);
-        art.head().setBounds (1256, 42, 86, 88);
-        panel.addAndMakeVisible (art.head());
-        meter.setBounds (1262, 166, Meter::barWidth * 2 + Meter::gap, 360);
+        meter.setBounds (1260, 96, Meter::barWidth * 2 + Meter::gap, 430);
         meter.setInterceptsMouseClicks (false, false);
         panel.addAndMakeVisible (meter);
 
@@ -414,7 +412,7 @@ namespace ducker
             shownGr = duck;
             shownPlaying = playing;
             panel.repaint (700, 470, 240, 60);
-            panel.repaint (1244, 526, 106, 50);
+            panel.repaint (1250, 526, 72, 50);
         }
     }
 
@@ -473,16 +471,11 @@ namespace ducker
         g.setColour (juce::Colours::black);
         g.fillRect (0, 36, theme::width, 2);
 
-        // screws
-        for (auto pos : { juce::Point<float> (17.0f, 53.0f), juce::Point<float> ((float) theme::width - 17.0f, 53.0f),
-                          juce::Point<float> (17.0f, (float) theme::height - 17.0f), juce::Point<float> ((float) theme::width - 17.0f, (float) theme::height - 17.0f) })
-        {
-            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff77705f), pos.x - 2.0f, pos.y - 2.0f, juce::Colour (0xff2a2722), pos.x + 5.0f, pos.y + 5.0f, true));
-            g.fillEllipse (pos.x - 7.0f, pos.y - 7.0f, 14.0f, 14.0f);
-            g.setColour (juce::Colours::black);
-            g.drawEllipse (pos.x - 7.0f, pos.y - 7.0f, 14.0f, 14.0f, 1.0f);
-            g.drawLine (juce::Line<float> (pos.x - 4.0f, pos.y - 3.0f, pos.x + 4.0f, pos.y + 3.0f), 2.0f);
-        }
+        // the five section frames (Duck knobs, presets and curve, rate/shapes/trigger, the duck, the meter)
+        for (auto r : { juce::Rectangle<float> (26.0f, 50.0f, 250.0f, 524.0f), juce::Rectangle<float> (290.0f, 50.0f, 404.0f, 524.0f),
+                        juce::Rectangle<float> (708.0f, 50.0f, 224.0f, 524.0f), juce::Rectangle<float> (946.0f, 50.0f, 288.0f, 524.0f),
+                        juce::Rectangle<float> (1250.0f, 50.0f, 72.0f, 524.0f) })
+            theme::drawSectionFrame (g, r);
 
         // the curve's well
         {
@@ -542,13 +535,14 @@ namespace ducker
 
         // meter labels and the gain reduction
         g.setFont (theme::label (16.0f, true));
-        theme::shadowText (g, "DUCK METER", { 1250.0f, 132.0f, 96.0f, 22.0f }, juce::Justification::centred, theme::cream);
+        theme::shadowText (g, "DUCK", { 1250.0f, 56.0f, 72.0f, 18.0f }, juce::Justification::centred, theme::cream);
+        theme::shadowText (g, "METER", { 1250.0f, 74.0f, 72.0f, 18.0f }, juce::Justification::centred, theme::cream);
         g.setFont (theme::label (13.0f, true));
-        theme::shadowText (g, "IN", { 1256.0f, 530.0f, 42.0f, 16.0f }, juce::Justification::centred, theme::dimText);
-        theme::shadowText (g, "OUT", { 1298.0f, 530.0f, 42.0f, 16.0f }, juce::Justification::centred, theme::dimText);
+        theme::shadowText (g, "IN", { 1256.0f, 530.0f, 34.0f, 16.0f }, juce::Justification::centred, theme::dimText);
+        theme::shadowText (g, "OUT", { 1288.0f, 530.0f, 34.0f, 16.0f }, juce::Justification::centred, theme::dimText);
         const float gain = 1.0f - shownGr;
         const juce::String gr = shownGr < 0.001f ? "0.0 dB" : (gain <= 1.0e-5f ? "-inf dB" : juce::String (20.0f * std::log10 (gain), 1) + " dB");
         g.setFont (theme::label (15.0f, true));
-        theme::shadowText (g, gr, { 1250.0f, 550.0f, 96.0f, 18.0f }, juce::Justification::centred, theme::brassHi);
+        theme::shadowText (g, gr, { 1250.0f, 550.0f, 72.0f, 18.0f }, juce::Justification::centred, theme::brassHi);
     }
 }

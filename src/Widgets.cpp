@@ -91,27 +91,50 @@ namespace ducker
             g.setColour (juce::Colours::black);
             g.fillPath (text, juce::AffineTransform::translation (3.0f, 4.0f));
             g.strokePath (text, juce::PathStrokeType (4.0f, juce::PathStrokeType::curved));
-            g.setColour (theme::yellow);
+            g.setColour (theme::cream);
             g.fillPath (text);
         }
 
-        // gear-edged brass ring
+        // gear-edged steel ring: square teeth (flat tops, straight radial sides, flat gaps), grained, with a raised edge lit top left
         juce::Path ring;
-        const int teeth = 18;
-        for (int i = 0; i < teeth * 2; ++i)
-        {
-            const float a = (float) i / (float) (teeth * 2) * juce::MathConstants<float>::twoPi;
-            const float r = (i % 2 ? 21.5f : 24.0f) * s;
-            const juce::Point<float> p (cx + std::cos (a) * r, cy + std::sin (a) * r);
-            i == 0 ? ring.startNewSubPath (p) : ring.lineTo (p);
-        }
+        const int teeth = 14;
+        const float pitch = juce::MathConstants<float>::twoPi / (float) teeth, rIn = 21.2f * s, rOut = 24.0f * s;
+        for (int i = 0; i < teeth; ++i)
+            for (auto [u, r] : { std::pair<float, float> { 0.0f, rIn }, { 0.25f, rIn }, { 0.25f, rOut }, { 0.75f, rOut }, { 0.75f, rIn } })
+            {
+                const float a = ((float) i + u) * pitch;
+                const juce::Point<float> p (cx + std::cos (a) * r, cy + std::sin (a) * r);
+                i == 0 && u == 0.0f ? ring.startNewSubPath (p) : ring.lineTo (p);
+            }
         ring.closeSubPath();
-        juce::ColourGradient brassGrad (juce::Colour (0xfff2d08a), x0 + 5.0f * s, top + 3.0f * s, juce::Colour (0xff4a3614), x0 + 45.0f * s, top + 47.0f * s, false);
-        brassGrad.addColour (0.45, juce::Colour (0xffa57c34));
-        g.setGradientFill (brassGrad);
+        const juce::Rectangle<float> box (x0 + 5.0f * s, top + 3.0f * s, 40.0f * s, 44.0f * s);
+        g.setGradientFill (theme::steelGradient (box));
         g.fillPath (ring);
-        g.setColour (juce::Colour (0xff140e04));
+        theme::grainFill (g, ring, 0.4f);
+        {
+            // faint brushed rings across the teeth (seeded, so the same every paint)
+            juce::Graphics::ScopedSaveState state (g);
+            g.reduceClipRegion (ring);
+            juce::Random rnd (11);
+            for (float r = 20.5f; r < 24.4f; r += 0.22f)
+            {
+                const bool light = rnd.nextFloat() < 0.5f;
+                const float a = rnd.nextFloat() * (light ? 0.16f : 0.2f), w = 0.2f + rnd.nextFloat() * 0.15f;
+                g.setColour ((light ? juce::Colour (0xfffff4d6) : juce::Colours::black).withAlpha (a));
+                g.drawEllipse (cx - r * s, cy - r * s, 2.0f * r * s, 2.0f * r * s, w * s);
+            }
+        }
+        g.setColour (juce::Colours::black);
         g.strokePath (ring, juce::PathStrokeType (1.2f * s));
+        {
+            juce::Graphics::ScopedSaveState state (g);
+            g.reduceClipRegion (ring);
+            juce::ColourGradient bevel (juce::Colours::white.withAlpha (0.65f), box.getX(), box.getY(), juce::Colours::black.withAlpha (0.6f), box.getRight(), box.getBottom(), false);
+            bevel.addColour (0.45, juce::Colours::white.withAlpha (0.0f));
+            bevel.addColour (0.55, juce::Colours::black.withAlpha (0.0f));
+            g.setGradientFill (bevel);
+            g.strokePath (ring, juce::PathStrokeType (2.6f * s));
+        }
 
         // value arc on a dark track
         const float a0 = juce::MathConstants<float>::pi * 0.75f, a1 = juce::MathConstants<float>::pi * 2.25f;
@@ -129,8 +152,20 @@ namespace ducker
         juce::ColourGradient cap (juce::Colour (0xff4a463f), cx - 4.0f * s, cy - 5.0f * s, juce::Colour (0xff151311), cx - 4.0f * s + 15.0f * s, cy - 5.0f * s + 15.0f * s, true);
         g.setGradientFill (cap);
         g.fillEllipse (cx - 14.5f * s, cy - 14.5f * s, 29.0f * s, 29.0f * s);
-        g.setColour (juce::Colours::black);
-        g.drawEllipse (cx - 14.5f * s, cy - 14.5f * s, 29.0f * s, 29.0f * s, 1.0f * s);
+        {
+            juce::Path capPath;
+            capPath.addEllipse (cx - 14.5f * s, cy - 14.5f * s, 29.0f * s, 29.0f * s);
+            theme::grainFill (g, capPath, 0.3f);
+        }
+        // a raised steel rim round the cap, lit top left
+        {
+            juce::ColourGradient rimGrad (juce::Colour (0xffe4e4e2), cx - 11.0f * s, cy - 11.0f * s, juce::Colour (0xff262625), cx + 11.0f * s, cy + 11.0f * s, false);
+            rimGrad.addColour (0.5, juce::Colour (0xff7a7a79));
+            g.setGradientFill (rimGrad);
+            g.drawEllipse (cx - 14.6f * s, cy - 14.6f * s, 29.2f * s, 29.2f * s, 1.8f * s);
+            g.setColour (juce::Colours::black);
+            g.drawEllipse (cx - 13.5f * s, cy - 13.5f * s, 27.0f * s, 27.0f * s, 0.8f * s);
+        }
 
         // pointer
         const float a = a0 + (a1 - a0) * f;
@@ -204,27 +239,15 @@ namespace ducker
         {
             g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff3dfa6), 0.0f, r.getY(), juce::Colour (0xffd5b46a), 0.0f, r.getBottom(), false));
             g.fillRoundedRectangle (r, 6.0f);
-            g.setColour (juce::Colour (0xff2a2010));
+            g.setColour (juce::Colour (0xff5c5c5b));
             g.drawRoundedRectangle (r, 6.0f, 1.5f);
             textColour = juce::Colour (0xff1a1408);
         }
         else
         {
-            const float radius = style == Style::pill ? r.getHeight() * 0.5f : 7.0f;
-            g.setColour (juce::Colours::black.withAlpha (0.6f));
-            g.fillRoundedRectangle (r.translated (0.0f, 2.0f), radius);
-            juce::Colour topC (0xff2c2925), botC (0xff1a1816);
-            if (style == Style::square && on) { topC = juce::Colour (0xff3a3020); botC = juce::Colour (0xff211b11); }
-            g.setGradientFill (juce::ColourGradient (topC, 0.0f, r.getY(), botC, 0.0f, r.getBottom(), false));
-            g.fillRoundedRectangle (r, radius);
-
-            juce::Colour edge = style == Style::pill ? theme::brassLo : juce::Colour (0xff0a0908);
-            if (on)
-                edge = theme::brassHi;
-            else if (hover)
-                edge = style == Style::pill ? theme::brass : theme::brassLo;
-            g.setColour (edge);
-            g.drawRoundedRectangle (r, radius, 2.0f);
+            // raised steel rim, 4 px wide; on and hover show on the face, never on the rim
+            const float radius = style == Style::pill ? (r.getHeight() - 2.0f) * 0.5f : 5.0f;
+            theme::drawRaisedButton (g, r.reduced (1.0f), radius, 4.0f, on, hover, hover && isMouseButtonDown());
             textColour = on ? theme::brassHi : (style == Style::square ? theme::offText : theme::cream);
         }
 
@@ -271,17 +294,8 @@ namespace ducker
     void ShapeButton::paint (juce::Graphics& g)
     {
         auto r = getLocalBounds().toFloat().reduced (1.0f);
-        g.setColour (juce::Colours::black.withAlpha (0.7f));
-        g.fillRoundedRectangle (r.translated (0.0f, 2.0f), 7.0f);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff2b2824), 0.0f, r.getY(), juce::Colour (0xff191715), 0.0f, r.getBottom(), false));
-        g.fillRoundedRectangle (r, 7.0f);
-        if (on)
-        {
-            g.setColour (theme::brassHi.withAlpha (0.12f));
-            g.fillRoundedRectangle (r.reduced (2.0f), 6.0f);
-        }
-        g.setColour (on ? theme::brassHi : (isMouseOver() ? theme::brassLo : juce::Colour (0xff0a0908)));
-        g.drawRoundedRectangle (r, 7.0f, 2.0f);
+        const bool hover = isMouseOver();
+        theme::drawRaisedButton (g, r.reduced (1.0f), 5.0f, 4.0f, on, hover, hover && isMouseButtonDown());
         g.setColour (juce::Colour (0xffe7b04a));
         g.strokePath (line, juce::PathStrokeType (2.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded),
                       juce::AffineTransform::translation (r.getCentreX() - 18.0f, r.getCentreY() - 13.0f));

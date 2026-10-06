@@ -28,7 +28,6 @@ juce_add_plugin(TheDucker
 juce_add_binary_data(TheDuckerArt
     SOURCES
         assets/ducker-logo.png
-        assets/ducker-head.png
         assets/ducker-body.png
         assets/body.png
         assets/head_spritesheet.png

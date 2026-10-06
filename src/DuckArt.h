@@ -17,7 +17,6 @@ namespace ducker
     public:
         DuckArt();
 
-        juce::Component& head() { return headView; }
         juce::Component& body() { return bodyView; }
 
         // duck: 0 = full volume, 1 = silent. bob: the Bob switch under the body. duckKnob: the Duck knob, 0-100, the
@@ -47,7 +46,7 @@ namespace ducker
             void paint (juce::Graphics&) override;
         };
 
-        View headView, bodyView;
+        View bodyView;
         std::vector<juce::Image> headFrames;                // views into the sheet (no copies)
         int shownFrame = -1;
         double startMs = 0.0;

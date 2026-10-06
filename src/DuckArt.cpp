@@ -6,8 +6,6 @@ namespace ducker
 {
     DuckArt::DuckArt()
     {
-        headView.image = juce::ImageCache::getFromMemory (BinaryData::duckerhead_png, BinaryData::duckerhead_pngSize);
-
         // the sheet is decoded once per process (ImageCache) and each frame is a view into it
         const auto sheet = juce::ImageCache::getFromMemory (BinaryData::head_spritesheet_png, BinaryData::head_spritesheet_pngSize);
         const auto body = juce::ImageCache::getFromMemory (BinaryData::body_png, BinaryData::body_pngSize);
@@ -22,12 +20,8 @@ namespace ducker
         else
             bodyView.image = juce::ImageCache::getFromMemory (BinaryData::duckerbody_png, BinaryData::duckerbody_pngSize);
 
-        for (auto* v : { &headView, &bodyView })
-        {
-            v->setInterceptsMouseClicks (false, false);
-            v->setPaintingIsUnclipped (true);       // the bob moves the body a little outside its box
-        }
-        headView.setTitle ("Duck head");
+        bodyView.setInterceptsMouseClicks (false, false);
+        bodyView.setPaintingIsUnclipped (true);     // the bob moves the body a little outside its box
         bodyView.setTitle ("The Ducker duck");
         startMs = juce::Time::getMillisecondCounterHiRes();
     }
@@ -66,17 +60,6 @@ namespace ducker
         shownDuck = duck;
         shownBob = bob;
 
-        // head: drops a little, tips forward (a squash stands in for the mock-up's 3D tilt) and turns, around its neck
-        {
-            const float w = (float) headView.getWidth(), h = (float) headView.getHeight();
-            const float px = w * 0.5f, py = h * 0.88f;
-            const float tilt = std::cos (juce::degreesToRadians (duck * 24.0f));
-            headView.motion = juce::AffineTransform::translation (-px, -py)
-                                  .scaled (1.0f, tilt)
-                                  .rotated (juce::degreesToRadians (-duck * 6.0f))
-                                  .translated (px, py + duck * 7.0f);
-            headView.repaint();
-        }
         // body: sinks and squashes a touch, around its feet
         {
             const float w = (float) bodyView.getWidth(), h = (float) bodyView.getHeight();
