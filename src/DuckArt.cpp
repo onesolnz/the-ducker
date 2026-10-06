@@ -26,14 +26,16 @@ namespace ducker
         startMs = juce::Time::getMillisecondCounterHiRes();
     }
 
-    int DuckArt::loopFor (float duckKnob)
+    int DuckArt::nextLoop (int current, float duckKnob)
     {
-        return duckKnob < 100.0f / 3.0f ? 0 : (duckKnob < 200.0f / 3.0f ? 1 : 2);
+        if (duckKnob < 1.0f)
+            return 0;
+        return duckKnob >= 2.0f ? 1 : current;
     }
 
     int DuckArt::frameAt (int loop, long long tick)
     {
-        const auto& l = kLoops[juce::jlimit (0, 2, loop)];
+        const auto& l = kLoops[juce::jlimit (0, 1, loop)];
         if (! l.pingPong)
             return l.first + (int) (tick % l.count);
         // forwards then back, without showing either end twice
@@ -46,15 +48,40 @@ namespace ducker
     {
         duck = juce::jlimit (0.0f, 1.0f, duck);
 
-        // the loop runs on its own clock; the Duck knob picks which one, and a new pick shows straight away
+        // the loops run on one clock; the Duck knob picks which one, and a new pick crossfades in over kFadeFrames
         if (! spriteFrames.empty())
         {
-            const double seconds = (juce::Time::getMillisecondCounterHiRes() - startMs) * 0.001;
-            const int frame = frameAt (loopFor (duckKnob), (long long) (seconds * kSpriteFps));
-            if (frame != shownFrame)
+            const double now = juce::Time::getMillisecondCounterHiRes();
+            const auto tick = (long long) ((now - startMs) * 0.001 * kSpriteFps);
+            if (const int wanted = nextLoop (loop, duckKnob); wanted != loop)
+            {
+                fadeFrom = loop;
+                loop = wanted;
+                fadeStartMs = now;
+            }
+
+            int under = -1;
+            float alpha = 1.0f;
+            if (fadeFrom >= 0)
+            {
+                const double t = (now - fadeStartMs) * 0.001 * kSpriteFps / kFadeFrames;
+                if (t >= 1.0)
+                    fadeFrom = -1;
+                else
+                {
+                    alpha = (float) t;
+                    under = frameAt (fadeFrom, tick);
+                }
+            }
+
+            const int frame = frameAt (loop, tick);
+            if (frame != shownFrame || under != shownUnder || under >= 0)
             {
                 shownFrame = frame;
+                shownUnder = under;
                 bodyView.image = spriteFrames[(size_t) frame];
+                bodyView.under = under >= 0 ? spriteFrames[(size_t) under] : juce::Image();
+                bodyView.imageAlpha = alpha;
                 bodyView.repaint();
             }
         }
@@ -94,6 +121,10 @@ namespace ducker
         const auto fit = juce::RectanglePlacement (juce::RectanglePlacement::xMid | juce::RectanglePlacement::yBottom)
                              .getTransformToFit (image.getBounds().toFloat(), getLocalBounds().toFloat());
         g.setImageResamplingQuality (juce::Graphics::highResamplingQuality);
-        g.drawImageTransformed (image, fit.followedBy (motion));
+        const auto transform = fit.followedBy (motion);
+        if (under.isValid())
+            g.drawImageTransformed (under, transform);
+        g.setOpacity (imageAlpha);
+        g.drawImageTransformed (image, transform);
     }
 }

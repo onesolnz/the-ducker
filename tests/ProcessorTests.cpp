@@ -190,13 +190,14 @@ public:
             expect (c.front().tick == 0 && c.front().bend == 1.0 && c[1].value == 1.0 && c.back().tick == kCycleTicks);
         }
 
-        beginTest ("Duck art: the Duck knob picks the loop; every loop wraps without a skipped or doubled end");
+        beginTest ("Duck art: the Duck knob picks the loop (with a dead zone at 1 %); every loop wraps without a skipped or doubled end");
         {
-            expect (DuckArt::loopFor (0.0f) == 0 && DuckArt::loopFor (33.0f) == 0);
-            expect (DuckArt::loopFor (34.0f) == 1 && DuckArt::loopFor (66.0f) == 1);
-            expect (DuckArt::loopFor (67.0f) == 2 && DuckArt::loopFor (100.0f) == 2);
+            // 0 = idle, 2 % and up = fists up, 1 % keeps what is showing
+            expect (DuckArt::nextLoop (0, 0.0f) == 0 && DuckArt::nextLoop (1, 0.0f) == 0);
+            expect (DuckArt::nextLoop (0, 1.0f) == 0 && DuckArt::nextLoop (1, 1.0f) == 1);
+            expect (DuckArt::nextLoop (0, 2.0f) == 1 && DuckArt::nextLoop (0, 100.0f) == 1 && DuckArt::nextLoop (1, 50.0f) == 1);
             int total = 0;
-            for (int loop = 0; loop < 3; ++loop)
+            for (int loop = 0; loop < 2; ++loop)
             {
                 const auto& l = DuckArt::kLoops[loop];
                 total += l.count;

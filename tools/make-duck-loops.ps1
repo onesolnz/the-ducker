@@ -3,9 +3,8 @@ $assets = 'D:\Claude Projects\The Ducker VST\assets'
 $W = 375; $H = 463; $cols = 9
 # sheet, cell w, cell h, dx, dy (feet onto y=458, centred), source frames
 $parts = @(
-  @('tier1', 244, 454, 58, 9, @(0..19 | ForEach-Object { $_ * 2 })),          # E: 0-38 every 2nd
-  @('tier2', 375, 463, 18, 1, @(0..35 | ForEach-Object { $_ * 2 })),          # H: 0-70 every 2nd
-  @('tier3', 375, 463,  0, 9, @(0..23 | ForEach-Object { 23 + $_ * 2 }))      # M: 23-69 every 2nd
+  @('tier1', 244, 454, 58, 9, @(0..19 | ForEach-Object { $_ * 2 })),          # idle: 0-38 every 2nd, ping-pong
+  @('tier3', 375, 463,  0, 9, @(0..23 | ForEach-Object { 23 + $_ * 2 }))      # fists up: 23-69 every 2nd, ping-pong
 )
 $total = 0; foreach ($p in $parts) { $total += $p[5].Count }
 $rows = [math]::Ceiling($total / $cols)
