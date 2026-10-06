@@ -1,5 +1,6 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "DuckArt.h"
 #include "PluginProcessor.h"
 #include "PresetStore.h"
 #include "Widgets.h"
@@ -187,6 +188,35 @@ public:
             const auto c = tidyCurve ({ { 500, 2.0, 0.0 }, { -10, 0.2, 3.0 } });
             expectEquals ((int) c.size(), 3);
             expect (c.front().tick == 0 && c.front().bend == 1.0 && c[1].value == 1.0 && c.back().tick == kCycleTicks);
+        }
+
+        beginTest ("Duck art: the Duck knob picks the loop; every loop wraps without a skipped or doubled end");
+        {
+            expect (DuckArt::loopFor (0.0f) == 0 && DuckArt::loopFor (33.0f) == 0);
+            expect (DuckArt::loopFor (34.0f) == 1 && DuckArt::loopFor (66.0f) == 1);
+            expect (DuckArt::loopFor (67.0f) == 2 && DuckArt::loopFor (100.0f) == 2);
+            int total = 0;
+            for (int loop = 0; loop < 3; ++loop)
+            {
+                const auto& l = DuckArt::kLoops[loop];
+                total += l.count;
+                const int period = l.pingPong ? 2 * l.count - 2 : l.count;
+                std::vector<int> seen ((size_t) l.count, 0);
+                for (long long t = 0; t < 3 * period; ++t)
+                {
+                    const int f = DuckArt::frameAt (loop, t), next = DuckArt::frameAt (loop, t + 1);
+                    expect (f >= l.first && f < l.first + l.count, "frame inside its own loop");
+                    // one step at a time, except where a plain loop jumps back to its start
+                    const bool wrap = ! l.pingPong && f == l.first + l.count - 1 && next == l.first;
+                    expect (std::abs (next - f) == 1 || wrap, "smooth step in loop " + juce::String (loop));
+                    if (t < period)
+                        ++seen[(size_t) (f - l.first)];
+                }
+                // a ping-pong shows its two ends once per cycle and the middle frames twice
+                for (int i = 0; i < l.count; ++i)
+                    expectEquals (seen[(size_t) i], (! l.pingPong || i == 0 || i == l.count - 1) ? 1 : 2);
+            }
+            expectEquals (total, DuckArt::kSpriteFrames);
         }
     }
 };

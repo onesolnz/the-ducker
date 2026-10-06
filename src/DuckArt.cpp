@@ -9,7 +9,7 @@ namespace ducker
         headView.image = juce::ImageCache::getFromMemory (BinaryData::duckerhead_png, BinaryData::duckerhead_pngSize);
 
         // the sheet is decoded once per process (ImageCache) and each frame is a view into it
-        const auto sheet = juce::ImageCache::getFromMemory (BinaryData::tier1_spritesheet_1x_png, BinaryData::tier1_spritesheet_1x_pngSize);
+        const auto sheet = juce::ImageCache::getFromMemory (BinaryData::duck_loops_png, BinaryData::duck_loops_pngSize);
         if (sheet.isValid())
             for (int i = 0; i < kSpriteFrames; ++i)
                 spriteFrames.push_back (sheet.getClippedImage ({ (i % kSpriteColumns) * kSpriteW, (i / kSpriteColumns) * kSpriteH, kSpriteW, kSpriteH }));
@@ -26,15 +26,31 @@ namespace ducker
         startMs = juce::Time::getMillisecondCounterHiRes();
     }
 
-    void DuckArt::setDuck (float duck, bool bob)
+    int DuckArt::loopFor (float duckKnob)
+    {
+        return duckKnob < 100.0f / 3.0f ? 0 : (duckKnob < 200.0f / 3.0f ? 1 : 2);
+    }
+
+    int DuckArt::frameAt (int loop, long long tick)
+    {
+        const auto& l = kLoops[juce::jlimit (0, 2, loop)];
+        if (! l.pingPong)
+            return l.first + (int) (tick % l.count);
+        // forwards then back, without showing either end twice
+        const int period = 2 * l.count - 2;
+        const int p = (int) (tick % period);
+        return l.first + (p < l.count ? p : period - p);
+    }
+
+    void DuckArt::setDuck (float duck, bool bob, float duckKnob)
     {
         duck = juce::jlimit (0.0f, 1.0f, duck);
 
-        // the idle loop runs on its own clock
+        // the loop runs on its own clock; the Duck knob picks which one, and a new pick shows straight away
         if (! spriteFrames.empty())
         {
             const double seconds = (juce::Time::getMillisecondCounterHiRes() - startMs) * 0.001;
-            const int frame = (int) std::fmod (seconds * kSpriteFps, (double) kSpriteFrames);
+            const int frame = frameAt (loopFor (duckKnob), (long long) (seconds * kSpriteFps));
             if (frame != shownFrame)
             {
                 shownFrame = frame;
