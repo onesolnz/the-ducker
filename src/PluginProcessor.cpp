@@ -1,7 +1,7 @@
 #include "PluginProcessor.h"
 
 #include "PluginEditor.h"
-#include "RealtimeGuard.h"
+#include <onesol/RealtimeGuard.h>
 
 namespace ducker
 {
@@ -69,7 +69,7 @@ namespace ducker
 
     void DuckerProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
     {
-        realtime::AudioThreadScope audioThread;
+        onesol::realtime::AudioThreadScope audioThread;
         juce::ScopedNoDenormals noDenormals;
 
         const int n = buffer.getNumSamples();

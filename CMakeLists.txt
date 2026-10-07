@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(JUCE)
 
+# Shared OneSol Audio code (steel look, knob, buttons, meter, test main...), compiled into each target below.
+include(${CMAKE_CURRENT_SOURCE_DIR}/../Shared/OneSolShared.cmake)
+
 # The spec is in the Ingot repo: specs/27-the-ducker-vst.md (mock-up: specs/mockup-the-ducker.html).
 juce_add_plugin(TheDucker
     COMPANY_NAME "OneSol Audio"
@@ -36,7 +39,6 @@ juce_add_binary_data(TheDuckerArt
 set(DUCKER_CORE_SOURCES
     src/Curve.cpp
     src/DuckerEngine.cpp
-    src/RealtimeGuard.cpp
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
     src/Widgets.cpp
@@ -47,6 +49,7 @@ set(DUCKER_CORE_SOURCES
 
 target_sources(TheDucker PRIVATE ${DUCKER_CORE_SOURCES})
 target_include_directories(TheDucker PRIVATE src)
+onesol_use_shared(TheDucker)
 
 set(DUCKER_DEFINITIONS
     JUCE_WEB_BROWSER=0
@@ -69,6 +72,7 @@ target_link_libraries(TheDucker
 juce_add_console_app(TheDuckerTests PRODUCT_NAME "TheDuckerTests")
 target_sources(TheDuckerTests PRIVATE ${DUCKER_CORE_SOURCES} tests/Main.cpp tests/EngineTests.cpp tests/ProcessorTests.cpp)
 target_include_directories(TheDuckerTests PRIVATE src)
+onesol_use_shared(TheDuckerTests)
 target_compile_definitions(TheDuckerTests PRIVATE ${DUCKER_DEFINITIONS} JUCE_STANDALONE_APPLICATION=1)
 target_link_libraries(TheDuckerTests
     PRIVATE

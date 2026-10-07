@@ -1,17 +1,19 @@
 #include "PresetStore.h"
 
+#include <onesol/PresetFile.h>
+
 namespace ducker::presetStore
 {
     juce::File defaultFile()
     {
-        return juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory).getChildFile ("The Ducker").getChildFile ("presets.xml");
+        return onesol::presetFile::inUserData ("The Ducker");
     }
 
     std::vector<UserPreset> load (const juce::File& file)
     {
         std::vector<UserPreset> list;
-        auto xml = juce::XmlDocument::parse (file);
-        if (xml == nullptr || ! xml->hasTagName ("PRESETS"))
+        auto xml = onesol::presetFile::read (file, "PRESETS");
+        if (xml == nullptr)
             return list;
         for (auto* e : xml->getChildWithTagNameIterator ("PRESET"))
         {
@@ -54,8 +56,6 @@ namespace ducker::presetStore
                 c->setAttribute ("bend", pt.bend);
             }
         }
-        if (! file.getParentDirectory().createDirectory())
-            return false;
-        return xml.writeTo (file);
+        return onesol::presetFile::write (file, xml);
     }
 }

@@ -59,6 +59,7 @@ namespace ducker
 
     DuckerEditor::DuckerEditor (DuckerProcessor& p) : AudioProcessorEditor (p), proc (p), curve (p.engine)
     {
+        onesol::setPalette (theme::palette());
         setLookAndFeel (&lnf);
         logo = juce::ImageCache::getFromMemory (BinaryData::duckerlogo_png, BinaryData::duckerlogo_pngSize);
         makeTexture();

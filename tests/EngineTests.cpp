@@ -4,7 +4,7 @@
 #include <juce_core/juce_core.h>
 
 #include "DuckerEngine.h"
-#include "RealtimeGuard.h"
+#include <onesol/RealtimeGuard.h>
 
 using namespace ducker;
 
@@ -321,7 +321,7 @@ public:
         }
 
         beginTest ("Nothing allocated on the audio thread");
-        if (realtime::isAvailable())
+        if (onesol::realtime::isAvailable())
         {
             std::vector<float> sc (20000, 0.0f);
             addKick (sc, 2000, 0.8f);
@@ -330,9 +330,9 @@ public:
             e.setCurve (ramp);
             std::vector<float> l (512, 1.0f), r (512, 1.0f);
             int notes[] = { 3, 200 };
-            realtime::resetViolations();
+            onesol::realtime::resetViolations();
             {
-                realtime::AudioThreadScope scope;
+                onesol::realtime::AudioThreadScope scope;
                 auto s = Settings();
                 s.delayMs = 20.0f;
                 for (auto trig : { Trigger::beat, Trigger::audio, Trigger::midi })
@@ -342,7 +342,7 @@ public:
                         e.process (l.data(), r.data(), 512, sc.data() + start, sc.data() + start, notes, 2, s, playing());
                 }
             }
-            expectEquals ((int) realtime::violationCount(), 0);
+            expectEquals ((int) onesol::realtime::violationCount(), 0);
         }
         else
         {
