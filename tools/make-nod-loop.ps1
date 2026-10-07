@@ -14,7 +14,7 @@ public static class Bbox {
   }
 }
 '@ -ReferencedAssemblies System.Drawing
-$assets = 'D:\Claude Projects\The Ducker VST\assets'
+$assets = Join-Path (Split-Path $PSScriptRoot) 'assets'
 $CW = 582; $CH = 964; $cols = 5; $n = 15
 $W = 375; $H = 463; $oc = 9; $feet = 458; $targetH = 440
 $src = [System.Drawing.Bitmap]::FromFile("$assets\nod_layers_spritesheet.png")

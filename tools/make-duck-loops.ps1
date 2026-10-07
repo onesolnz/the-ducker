@@ -1,5 +1,5 @@
 Add-Type -AssemblyName System.Drawing
-$assets = 'D:\Claude Projects\The Ducker VST\assets'
+$assets = Join-Path (Split-Path $PSScriptRoot) 'assets'
 $W = 375; $H = 463; $cols = 9
 # sheet, cell w, cell h, dx, dy (feet onto y=458, centred), source frames
 $parts = @(

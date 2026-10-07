@@ -1,0 +1,219 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Ducker Loop Switch</title>
+<!-- Spec 27: trying how the duck switches between its two loops (moving 0-66, fists up 67-100) before rebuilding the plug-in.
+     Plays the real frames from the plug-in's sheet; open through the mockups server:
+     http://localhost:8765/specs/mockup-the-ducker-loops.html  (the sheet is copied to build/ducker-sprites/, not in git) -->
+<style>
+  body { background:#14120d; color:#f0e6c8; font:14px system-ui, sans-serif; margin:16px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .note { color:#b8ab88; margin:0 0 14px; max-width:900px; }
+  .wrap { display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
+  .stage { background:radial-gradient(circle at 50% 40%, #2c271d, #1a1711); border:2px solid #3d3526; border-radius:12px; padding:10px; }
+  .stage canvas { display:block; }
+  .panel { background:#211d15; border:2px solid #3d3526; border-radius:12px; padding:14px; width:340px; }
+  .row { margin:0 0 14px; }
+  .row b { display:block; margin-bottom:6px; color:#f4b81c; font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+  .pills { display:flex; gap:6px; flex-wrap:wrap; }
+  .pill { background:#2e2819; color:#d8cba6; border:1.5px solid #574a2f; border-radius:999px; padding:6px 12px; cursor:pointer; font:inherit; }
+  .pill.on { background:#f4b81c; color:#1a1711; border-color:#f4b81c; font-weight:600; }
+  input[type=range] { width:100%; accent-color:#f4b81c; }
+  .val { color:#f0e6c8; font-weight:600; }
+  .status { font-size:13px; color:#b8ab88; line-height:1.6; min-height:64px; }
+  .status .hot { color:#f4b81c; }
+  #knob { width:120px; height:120px; display:block; margin:4px auto 0; cursor:ns-resize; touch-action:none; }
+</style></head><body>
+<h1>The Ducker: switching between the two loops</h1>
+<p class="note">Drag the Duck knob up and down (from 0 to 1 % and back) or press <b>Auto sweep</b>. Idle loop at 0 %, fists up above; the Loops row has the other layouts.
+Try <b>Crossfade</b> and <b>Closest pair</b>; <b>Instant</b> is what the plug-in does now. The bob and a fake kick on every beat behave as in the plug-in.</p>
+<div class="wrap">
+  <div class="stage"><canvas id="c" width="330" height="400"></canvas></div>
+  <div class="panel">
+    <div class="row"><b>Duck</b><canvas id="knob" width="240" height="240"></canvas>
+      <div style="text-align:center"><span class="val" id="knobVal">50 %</span> · <span id="loopName"></span></div></div>
+    <div class="row"><b>Switch</b><div class="pills" id="modes">
+      <button class="pill" data-m="instant">Instant</button><button class="pill on" data-m="fade">Crossfade</button><button class="pill" data-m="closest">Closest pair</button>
+</div></div>
+    <div class="row"><b>Loops</b><div class="pills" id="layouts">
+      <button class="pill on" data-l="zero">Idle at 0, fists up above</button><button class="pill" data-l="single">Fists up only</button>
+      <button class="pill" data-l="nod">Nod at 0, fists up above</button><button class="pill" data-l="nodonly">Nod size = Duck knob</button>
+      <button class="pill" data-l="two">Moving / fists up (66)</button></div></div>
+    <div class="row"><b>Crossfade length</b><input type="range" id="fade" min="1" max="12" value="4"><span class="val" id="fadeVal"></span></div>
+    <div class="row"><b>Nod timing</b><div class="pills"><button class="pill" id="nodFree">Free (12 fps)</button><button class="pill on" id="nodBeat">Locked to beat</button>
+      <button class="pill on" id="play">Transport playing</button><select id="cyc" class="pill"><option value="1" selected>1 beat per nod</option><option value="2">2 beats</option><option value="4">1 bar (4 beats)</option></select></div>
+      <div style="margin-top:8px">Tempo <input type="range" id="bpm" min="60" max="180" value="120"><span class="val" id="bpmVal"></span></div>
+      <div>Rest frame (Duck 0 %) <input type="range" id="rest" min="0" max="14" value="2"><span class="val" id="restVal"></span></div>
+      <div>Down frame <input type="range" id="down" min="0" max="14" value="14"><span class="val" id="downVal"></span> <span id="beatDot" style="display:inline-block;width:12px;height:12px;border-radius:6px;background:#3d3526;vertical-align:middle"></span></div></div>
+    <div class="row"><b>Test</b><div class="pills">
+      <button class="pill" id="sweep">Auto sweep</button><button class="pill on" id="bob">Bob</button><button class="pill on" id="beat">Kicks</button>
+      <select id="size" class="pill"><option value="258">100 %</option><option value="330" selected>130 %</option><option value="387">150 %</option></select></div></div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+<script>
+const W = 375, H = 463, COLS = 9, FPS = 12;
+// in the sheet: 0-19 calm (dropped), 20-55 moving (plain loop), 56-79 fists up (ping-pong)
+const LOOPS = [ { first:20, count:36, ping:false, name:'moving' }, { first:56, count:24, ping:true, name:'fists up' },
+                { first:0, count:20, ping:true, name:'idle' },
+                { first:1000, count:15, ping:true, name:'nod' } ];     // frame numbers 1000+ are in nod_loop.png
+const frameAt = f => ({ img: sheet, i: f });
+const period = l => l.ping ? 2*l.count - 2 : l.count;
+const frameOf = (l, p) => { p = ((p % period(l)) + period(l)) % period(l); return l.first + (l.ping ? (p < l.count ? p : period(l) - p) : p); };
+
+let sheet, headSheet, bodyImg, feat = [], dist = {};
+let restFrame = 2, nodSync = true, playing = true, bpm = 120, cycBeats = 1, downFrame = 14, beatPos = 0;   // beatPos: the fake host position in beats
+const beatsAt = () => beatPos;
+let knob = 0, mode = 'fade', layout = 'zero', fadeFrames = 4, bob = true, kicks = true, sweep = false, sweepT = 0;
+// what is showing: the current loop and its phase; during a switch the outgoing loop keeps playing underneath
+let cur = { loop: 2, phase: 0 }, out = null, fadeLeft = 0, fadeTotal = 1, waiting = null, waitStart = 0, lastNote = '';
+
+const img = new Image();
+const img2 = new Image(), img3 = new Image();
+let loaded = 0; const ready = () => { if (++loaded === 3) { analyse(); requestAnimationFrame(tick); } };
+img.onload = () => { sheet = img; ready(); }; img2.onload = () => { headSheet = img2; ready(); }; img3.onload = () => { bodyImg = img3; ready(); };
+img.src = "../build/ducker-sprites/duck_loops.png"; img2.src = "../build/ducker-sprites/head_spritesheet.png"; img3.src = "../build/ducker-sprites/body.png";
+function analyse() {                          // small premultiplied copies of every frame, to find look-alike pairs
+  const c = document.createElement('canvas'), dw = 75, dh = 93; c.width = dw; c.height = dh;
+  const g = c.getContext('2d');
+  const all = []; for (let k = 0; k < 80; k++) all.push(k); for (let k = 0; k < 15; k++) all.push(1000 + k);
+  for (const f of all) {
+    g.clearRect(0, 0, dw, dh); drawFrame(g, f, 1, 0, 0, dw, dh); g.globalAlpha = 1;
+    const d = g.getImageData(0, 0, dw, dh).data, v = new Float32Array(d.length);
+    for (let i = 0; i < d.length; i += 4) { const a = d[i+3]/255; v[i]=d[i]*a; v[i+1]=d[i+1]*a; v[i+2]=d[i+2]*a; v[i+3]=d[i+3]; }
+    feat[f] = v;
+  }
+}
+function D(a, b) { const k = a < b ? a+','+b : b+','+a; if (dist[k] === undefined) { const x = feat[a], y = feat[b]; let s = 0; for (let i = 0; i < x.length; i++) s += Math.abs(x[i]-y[i]); dist[k] = s / x.length; } return dist[k]; }
+// a normal one-frame step inside a loop, to judge a jump against
+function normalStep(l) { const v = []; for (let p = 0; p < period(l); p++) v.push(D(frameOf(l, p), frameOf(l, p+1))); v.sort((a,b)=>a-b); return v[v.length>>1]; }
+
+// Closest pair: the frames of the outgoing loop that have a close match in the other loop (best 4 of them)
+function exits(from, to) {
+  const lf = LOOPS[from], lt = LOOPS[to], list = [];
+  for (let i = 0; i < lf.count; i++) { let best = 1e9, at = 0; for (let j = 0; j < lt.count; j++) { const d = D(lf.first+i, lt.first+j); if (d < best) { best = d; at = j; } } list.push({ from: lf.first+i, to: lt.first+at, d: best }); }
+  list.sort((a,b)=>a.d-b.d); return list.slice(0, 4);
+}
+function phaseFor(l, frame) { for (let p = 0; p < period(l); p++) if (frameOf(l, p) === frame) return p; return 0; }
+
+function want() { return layout === 'single' ? 1 : layout === 'nodonly' ? 3 : (layout === 'nod' ? (knob <= 0 ? 3 : 1) : layout === 'zero' ? (knob <= 0 ? 2 : 1) : (knob <= 66 ? 0 : 1)); }
+function startSwitch(to, phase, note) {
+  out = { loop: cur.loop, phase: cur.phase };
+  cur = { loop: to, phase };
+  fadeTotal = mode === 'instant' ? 0 : fadeFrames; fadeLeft = fadeTotal;
+  if (fadeTotal === 0) out = null;
+  lastNote = note;
+}
+
+function step() {                             // one frame of the 12 fps clock
+  cur.phase++; if (out) out.phase++;
+  if (fadeLeft > 0 && --fadeLeft === 0) out = null;
+  const w = want();
+  if (w === cur.loop) { waiting = null; return; }
+  if (out) return;                            // let a running fade finish first
+  if (mode !== 'closest') {
+    startSwitch(w, cur.phase, mode === 'instant' ? 'Switched straight away (hard cut).' : `Crossfading over ${fadeFrames} frames.`);
+    return;
+  }
+  if (!waiting) { waiting = exits(cur.loop, w); waitStart = performance.now(); }
+  const here = frameOf(LOOPS[cur.loop], cur.phase), hit = waiting.find(e => e.from === here);
+  if (hit) {
+    const lag = (performance.now() - waitStart) / 1000;
+    const jump = hit.d / normalStep(LOOPS[cur.loop]);
+    startSwitch(w, phaseFor(LOOPS[w], hit.to), `Waited ${lag.toFixed(1)} s for the closest pair (frame ${here} → ${hit.to}); the jump is ${jump.toFixed(1)}× a normal step.`);
+    waiting = null;
+  }
+}
+
+// the fake kick: the duck amount drops on every beat at 120 BPM and recovers, scaled by the knob (as the engine would)
+function duckAmount(t) { if (!kicks || !playing) return 0; const ph = beatsAt(t) % 1; return (knob/100) * Math.pow(1 - ph, 2.2); }
+
+// the nod loop is layered (The Ducker VST/assets/layout.json): body 582x966, head frames 464x464 drawn at (-1,5) on it;
+// NS scales that canvas to the 375x463 cell the other loops use (duck as tall as the idle one, feet on the same line)
+const NS = 0.462, NX = 53.6, NY = 19.8;
+function drawFrame(g, f, alpha, x, y, w, h) {
+  g.globalAlpha = alpha;
+  if (f >= 1000) {
+    const s = w / W, sc = NS * s, bx = x + NX * s, by = y + NY * s, i = f - 1000;
+    g.drawImage(bodyImg, bx, by, 582 * sc, 966 * sc);
+    g.drawImage(headSheet, (i % 5) * 464, Math.floor(i / 5) * 464, 464, 464, bx - sc, by + 5 * sc, 464 * sc, 464 * sc);
+    return;
+  }
+  const fa = frameAt(f); g.drawImage(fa.img, (fa.i%COLS)*W, Math.floor(fa.i/COLS)*H, W, H, x, y, w, h);
+}
+
+let clock = 0, last = performance.now();
+function tick(now) {
+  const dt = Math.min(0.1, (now - last)/1000); last = now;
+  if (sweep) { sweepT += dt; knob = Math.floor(sweepT / 3) % 2 ? (layout === 'zero' || layout === 'nod' ? 40 : 85) : (layout === 'zero' || layout === 'nod' ? 0 : 45); }
+  clock += dt * FPS;
+  if (playing) beatPos += dt * bpm / 60;
+  while (clock >= 1) { clock -= 1; step(); }
+  if (nodSync && playing) {   // the nod follows the beat: the "down" frame lands on every cycle start
+    const ph = Math.floor(((beatPos / cycBeats) % 1) * period(LOOPS[3]) + downFrame);
+    for (const o of [cur, out]) if (o && o.loop === 3) o.phase = ph;
+  }
+
+  const cv = document.getElementById('c'), h = +document.getElementById('size').value;
+  if (cv.height !== h + 30) { cv.height = h + 30; cv.width = Math.round(h * 0.85); }
+  const g = cv.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.clearRect(0, 0, cv.width, cv.height);
+  const s = h / H, w = W * s, x = (cv.width - w)/2, y = cv.height - 10 - h;
+  // the bob: sinks and squashes a touch around the feet, as DuckArt does (10 and 0.04 of the 1350-wide layout)
+  const duck = duckAmount(now/1000);
+  if (bob) { const feetY = y + h, cx = cv.width/2, k = h / 344; g.translate(cx, feetY + duck * 10 * k); g.scale(1, 1 - duck * 0.04); g.translate(-cx, -feetY); }
+  g.imageSmoothingQuality = 'high';
+  const t = fadeTotal ? (fadeTotal - fadeLeft + clock) / fadeTotal : 1;
+  if (out) drawFrame(g, frameOf(LOOPS[out.loop], out.phase), 1, x, y, w, h);
+  if (layout === 'nodonly' && cur.loop === 3 && !out) {   // nod size follows the knob: the head angle is scaled from the rest frame (0 deg) by knob %
+    const mv = frameOf(LOOPS[3], cur.phase) - 1000;
+    drawFrame(g, 1000 + Math.round(restFrame + (mv - restFrame) * knob / 100), 1, x, y, w, h);
+  } else drawFrame(g, frameOf(LOOPS[cur.loop], cur.phase), out ? Math.min(1, t) : 1, x, y, w, h);
+  g.globalAlpha = 1;
+
+  drawKnob();
+  document.getElementById('knobVal').textContent = Math.round(knob) + ' %';
+  document.getElementById('loopName').textContent = LOOPS[want()].name + ' loop' + (bob ? ` · bob ${Math.round(duck * 100)} %` : '');
+  document.getElementById('restVal').textContent = ' ' + (restFrame + 1) + ' of 15';
+  document.getElementById('bpmVal').textContent = ' ' + bpm + ' BPM';
+  document.getElementById('downVal').textContent = ' ' + (downFrame + 1) + ' of 15';
+  document.getElementById('beatDot').style.background = playing && beatPos % 1 < 0.15 ? '#f4b81c' : '#3d3526';
+  document.getElementById('fadeVal').textContent = ` ${fadeFrames} frames = ${(fadeFrames/FPS).toFixed(2)} s`;
+  const st = document.getElementById('status');
+  st.innerHTML = (waiting ? `<span class="hot">Waiting for a close frame… ${((performance.now()-waitStart)/1000).toFixed(1)} s</span><br>` : '') + (lastNote || 'Cross 66 / 67 to see a switch.');
+  requestAnimationFrame(tick);
+}
+
+function drawKnob() {                         // a plain brass knob for the test, 0-100 over 270 degrees
+  const c = document.getElementById('knob'), g = c.getContext('2d'), r = 100, cx = 120, cy = 120;
+  g.clearRect(0, 0, 240, 240);
+  const a0 = Math.PI * 0.75, a1 = a0 + Math.PI * 1.5 * knob / 100, a66 = a0 + Math.PI * 1.5 * 0.665;
+  g.lineWidth = 14; g.lineCap = 'round';
+  g.strokeStyle = '#3d3526'; g.beginPath(); g.arc(cx, cy, r, a0, a0 + Math.PI*1.5); g.stroke();
+  g.strokeStyle = '#f4b81c'; g.beginPath(); g.arc(cx, cy, r, a0, a1); g.stroke();
+  g.strokeStyle = '#f0e6c8'; g.lineWidth = 3; g.beginPath(); if (layout === 'two') g.moveTo(cx + Math.cos(a66)*(r-14), cy + Math.sin(a66)*(r-14)); g.lineTo(cx + Math.cos(a66)*(r+14), cy + Math.sin(a66)*(r+14)); g.stroke();
+  const grad = g.createRadialGradient(cx-20, cy-25, 10, cx, cy, 80); grad.addColorStop(0, '#5a4f3a'); grad.addColorStop(1, '#1f1b14');
+  g.fillStyle = grad; g.beginPath(); g.arc(cx, cy, 78, 0, Math.PI*2); g.fill();
+  g.strokeStyle = '#f0e6c8'; g.lineWidth = 8; g.beginPath(); g.moveTo(cx + Math.cos(a1)*30, cy + Math.sin(a1)*30); g.lineTo(cx + Math.cos(a1)*68, cy + Math.sin(a1)*68); g.stroke();
+}
+
+// controls
+const kc = document.getElementById('knob'); let dragY = null, dragK = 0;
+kc.addEventListener('pointerdown', e => { dragY = e.clientY; dragK = knob; kc.setPointerCapture(e.pointerId); sweep = false; document.getElementById('sweep').classList.remove('on'); });
+kc.addEventListener('pointermove', e => { if (dragY !== null) knob = Math.max(0, Math.min(100, Math.round(dragK + (dragY - e.clientY) * 0.5))); });
+kc.addEventListener('pointerup', () => dragY = null);
+document.querySelectorAll('#modes .pill').forEach(b => b.onclick = () => { document.querySelectorAll('#modes .pill').forEach(x => x.classList.remove('on')); b.classList.add('on'); mode = b.dataset.m; waiting = null;
+});
+document.querySelectorAll('#layouts .pill').forEach(b => b.onclick = () => { document.querySelectorAll('#layouts .pill').forEach(x => x.classList.remove('on')); b.classList.add('on'); layout = b.dataset.l; waiting = null;
+  if (layout === 'single') { cur = { loop: 1, phase: 0 }; out = null; fadeLeft = 0; lastNote = 'One loop for the whole knob range; only the coded bob changes with the knob.'; }
+  else if (layout === 'nodonly') { cur = { loop: 3, phase: 0 }; out = null; fadeLeft = 0; lastNote = 'The nod loop for the whole knob range: the head angle is scaled by the knob: Duck 0 % holds the rest frame, 100 % is the full nod.'; }
+  else if (layout === 'nod') lastNote = 'The nod loop while Duck is exactly 0 %; any other value plays fists up.';
+  else lastNote = layout === 'zero' ? 'Idle loop only while Duck is exactly 0 %; any other value plays fists up.' : 'Cross 66 / 67 to see a switch.'; });
+document.getElementById('fade').oninput = e => fadeFrames = +e.target.value;
+const toggle = (id, set) => { const b = document.getElementById(id); b.onclick = () => { b.classList.toggle('on'); set(b.classList.contains('on')); }; };
+document.getElementById('rest').oninput = e => restFrame = +e.target.value;
+document.getElementById('bpm').oninput = e => bpm = +e.target.value;
+document.getElementById('down').oninput = e => downFrame = +e.target.value;
+document.getElementById('cyc').onchange = e => cycBeats = +e.target.value;
+document.getElementById('nodFree').onclick = () => { nodSync = false; nodFree.classList.add('on'); nodBeat.classList.remove('on'); };
+document.getElementById('nodBeat').onclick = () => { nodSync = true; nodBeat.classList.add('on'); nodFree.classList.remove('on'); };
+toggle('play', v => playing = v);
+toggle('sweep', v => { sweep = v; sweepT = 0; }); toggle('bob', v => bob = v); toggle('beat', v => kicks = v);
+</script></body></html>
