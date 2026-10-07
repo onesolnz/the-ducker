@@ -5,50 +5,6 @@
 
 namespace ducker
 {
-    // ---------- HitDetector ----------
-
-    void HitDetector::prepare (double sampleRate)
-    {
-        const auto samples = [sampleRate] (double ms) { return std::max (1, (int) std::lround (ms * 0.001 * sampleRate)); };
-        history.assign ((size_t) samples (kLookBackMs), 0.0f);
-        holdOffSamples = samples (kHoldOffMs);
-        attack = (float) std::exp (-1.0 / (kAttackMs * 0.001 * sampleRate));
-        release = (float) std::exp (-1.0 / (kReleaseMs * 0.001 * sampleRate));
-        reset();
-    }
-
-    void HitDetector::reset() noexcept
-    {
-        std::fill (history.begin(), history.end(), 0.0f);
-        writePos = 0;
-        holdOff = 0;
-        env = 0.0f;
-    }
-
-    bool HitDetector::process (float x) noexcept
-    {
-        x = std::abs (x);
-        env = x > env ? x + (env - x) * attack : x + (env - x) * release;
-        if (history.empty())
-            return false;
-
-        const float before = history[(size_t) writePos];        // the envelope kLookBackMs ago (the oldest kept)
-        history[(size_t) writePos] = env;
-        writePos = (writePos + 1) % (int) history.size();
-
-        if (holdOff > 0)
-        {
-            --holdOff;
-            return false;
-        }
-        if (env > kFloor && env > kRise * before)
-        {
-            holdOff = holdOffSamples;
-            return true;
-        }
-        return false;
-    }
-
     // ---------- DuckerEngine ----------
 
     void DuckerEngine::prepare (double rate)

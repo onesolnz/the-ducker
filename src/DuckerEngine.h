@@ -4,33 +4,15 @@
 #include <atomic>
 #include <vector>
 
+#include <onesol/HitDetector.h>
+
 #include "Curve.h"
 
 namespace ducker
 {
     enum class Trigger { beat = 0, audio = 1, midi = 2 };
 
-    // Finds the start of each hit in a clean single-sound sidechain (a kick on its own). No controls: a fast envelope that
-    // jumps to at least twice (+6 dB) what it was a few milliseconds before, above -50 dBFS, is a hit; after a hit it waits
-    // 30 ms before it can fire again, so a kick's own ringing or tail never counts twice. Constants were tuned against the
-    // test kicks in tests/EngineTests.cpp.
-    class HitDetector
-    {
-    public:
-        static constexpr double kAttackMs = 1.0, kReleaseMs = 30.0, kLookBackMs = 5.0, kHoldOffMs = 30.0;
-        static constexpr float kRise = 2.0f, kFloor = 0.00316f;      // +6 dB, -50 dBFS
-
-        void prepare (double sampleRate);          // allocates: message thread only
-        void reset() noexcept;
-
-        // One sample of the sidechain (already mono). True on the sample a hit starts.
-        bool process (float x) noexcept;
-
-    private:
-        std::vector<float> history;                 // the fast envelope over the last kLookBackMs
-        int writePos = 0, holdOff = 0, holdOffSamples = 0;
-        float env = 0.0f, attack = 0.0f, release = 0.0f;
-    };
+    using onesol::HitDetector;      // the Audio trigger's hit finder is shared (Shared/include/onesol/HitDetector.h)
 
     // Everything the knobs set, read once per block.
     struct Settings
